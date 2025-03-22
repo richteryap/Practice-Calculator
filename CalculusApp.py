@@ -23,6 +23,9 @@ SAFE_MATH_FUNCS = {
     'sin': math.sin,
     'cos': math.cos,
     'tan': math.tan,
+    'asin': math.asin,
+    'acos': math.acos,
+    'atan': math.atan,
     'pi': math.pi,
     'e': math.e,
     'factorial': math.factorial,
@@ -118,6 +121,42 @@ def on_button_click(text):
     elif text == 'mod':
         screen.insert(tk.END, ' mod ')
         real_expression += ' % '
+    elif text == 'sin':
+        screen.insert(tk.END, 'sin(')
+        real_expression += 'sin('
+    elif text == 'cos':
+        screen.insert(tk.END, 'cos(')
+        real_expression += 'cos('
+    elif text == 'tan':
+        screen.insert(tk.END, 'tan(')
+        real_expression += 'tan('
+    elif text == 'sec':
+        screen.insert(tk.END, 'sec(')
+        real_expression += '1/cos('
+    elif text == 'csc':
+        screen.insert(tk.END, 'csc(')
+        real_expression += '1/sin('
+    elif text == 'cot':
+        screen.insert(tk.END, 'cot(')
+        real_expression += '1/tan('
+    elif text == 'asin':
+        screen.insert(tk.END, 'asin(')
+        real_expression += 'asin('
+    elif text == 'acos':
+        screen.insert(tk.END, 'acos(')
+        real_expression += 'acos('
+    elif text == 'atan':
+        screen.insert(tk.END, 'atan(')
+        real_expression += 'atan('
+    elif text == 'asec':
+        screen.insert(tk.END, 'asec(')
+        real_expression += 'acos(1/('
+    elif text == 'acsc':
+        screen.insert(tk.END, 'acsc(')
+        real_expression += 'asin(1/('
+    elif text == 'acot':
+        screen.insert(tk.END, 'acot(')
+        real_expression += 'atan(1/('
     else:
         screen.insert(tk.END, text)
         real_expression += text
