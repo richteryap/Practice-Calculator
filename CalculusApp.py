@@ -15,6 +15,20 @@ screen.grid(row=0, column=0, columnspan=2, pady=5)
 
 real_expression = ""
 
+SAFE_MATH_FUNCS = {
+    'sqrt': math.sqrt,
+    'log': math.log,
+    'log10': math.log10,
+    'exp': math.exp,
+    'sin': math.sin,
+    'cos': math.cos,
+    'tan': math.tan,
+    'pi': math.pi,
+    'e': math.e,
+    'factorial': math.factorial,
+    'abs': abs
+}
+
 def on_button_click(text):
     global real_expression
 
@@ -28,24 +42,20 @@ def on_button_click(text):
             return
         screen.delete(len(screen.get()) - 1, tk.END)
         real_expression = real_expression[:-1]
-    elif text == '◄':
+    elif text in ['◄', '►']:
         current_pos = screen.index(tk.INSERT)
-        if current_pos > 0:
-            screen.icursor(current_pos - 1)
-    elif text == '►':
-        current_pos = screen.index(tk.INSERT)
-        if current_pos < len(screen.get()):
-            screen.icursor(current_pos + 1)
+        new_pos = max(0, current_pos - 1) if text == '◄' else min(len(screen.get()), current_pos + 1)
+        screen.icursor(new_pos)
     elif text == '=':
-        open_parens = real_expression.count('(')
-        close_parens = real_expression.count(')')
-
         if not real_expression:
             return
-        if open_parens > close_parens:
-            real_expression += ')' * (open_parens - close_parens)
+
+        open_parens = real_expression.count('(')
+        close_parens = real_expression.count(')')
+        real_expression += ')' * (open_parens - close_parens)  # Fix unclosed parentheses
+        
         try:
-            result = sp.sympify(real_expression)
+            result = eval(real_expression, {"__builtins__": None}, SAFE_MATH_FUNCS)
 
             if isinstance(result, float) and result.is_integer():
                 result = int(result)
@@ -59,7 +69,7 @@ def on_button_click(text):
             real_expression = "Error"
     elif text == 'a^2':
         screen.insert(tk.END, '^2')
-        real_expression += '**2'
+        real_expression += '**2'   
     elif text == 'a^b':
         screen.insert(tk.END, '^')
         real_expression += '**'
@@ -68,28 +78,28 @@ def on_button_click(text):
         real_expression += '=='
     elif text == 'π':
         screen.insert(tk.END, 'π')
-        real_expression += 'math.pi'
+        real_expression += 'pi'
     elif text == '√x':
         screen.insert(tk.END, '√(')
-        real_expression += 'math.sqrt('
+        real_expression += 'sqrt('
     elif text == 'ⁿ√x':
         screen.insert(tk.END, 'ⁿ√(')
         real_expression += '**(1/'
     elif text == 'n!':
         screen.insert(tk.END, '!')
-    
+
         i = len(real_expression) - 1
-        while i >= 0 and real_expression[i].isdigit():
+        while i >= 0 and (real_expression[i].isdigit() or real_expression[i] == ')'):
             i -= 1
-    
+
         if i < len(real_expression) - 1:
             num = real_expression[i + 1:]
-            real_expression = real_expression[:i + 1] + f'math.factorial({num})'
+            real_expression = real_expression[:i + 1] + f'factorial({num})'
         else:
-            real_expression += 'math.factorial('
+            real_expression += 'factorial('
     elif text == '|x|':
         screen.insert(tk.END, 'abs(')
-        real_expression += 'math.fabs('
+        real_expression += 'abs('
     elif text == '%':
         screen.insert(tk.END, '%')
         real_expression += '/100'
@@ -98,16 +108,16 @@ def on_button_click(text):
         real_expression += '10**('
     elif text == 'e':
         screen.insert(tk.END, 'e')
-        real_expression += 'math.e'
+        real_expression += 'e'
     elif text == 'ln':
         screen.insert(tk.END, 'ln(')
-        real_expression += 'math.log('
+        real_expression += 'log('
     elif text == 'log':
         screen.insert(tk.END, 'log(')
-        real_expression += 'math.log10('
+        real_expression += 'log10('
     elif text == 'mod':
-        screen.insert(tk.END, 'mod')
-        real_expression += '%'
+        screen.insert(tk.END, ' mod ')
+        real_expression += ' % '
     else:
         screen.insert(tk.END, text)
         real_expression += text
@@ -126,7 +136,6 @@ def create_button(parent, text, row, col):
         relief='flat', overrelief='flat', justify='center',
         bg='gainsboro', fg='black', width=5
     ).grid(row=row, column=col, padx=1, pady=1)
-
 
 buttonLayouts = {
     'Functions': [
