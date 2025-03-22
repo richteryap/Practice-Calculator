@@ -45,7 +45,7 @@ def on_button_click(text):
         if open_parens > close_parens:
             real_expression += ')' * (open_parens - close_parens)
         try:
-            result = eval(real_expression)
+            result = sp.sympify(real_expression)
 
             if isinstance(result, float) and result.is_integer():
                 result = int(result)
