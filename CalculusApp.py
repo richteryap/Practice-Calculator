@@ -4,14 +4,21 @@ import sympy as sp
 
 root = tk.Tk()
 root.title('Calculus-Powered Graphing App')
-root.geometry('625x265')
+root.geometry('625x295')
 
 appLayout = tk.Frame(root)
 appLayout.pack()
 
-screen = tk.Entry(appLayout, font=('Courier New', 15), bg='white', fg='black',
+screenFrame = tk.Frame(appLayout)
+screenFrame.grid(row=0, column=0, rowspan=2, columnspan=2, pady=5)
+
+screenAnswers = tk.Entry(screenFrame, font=('Courier New', 15), bg='white', fg='black',
+                         width=50, bd=5, relief='flat', justify='right')
+screenAnswers.grid(row=0, column=0, columnspan=2)
+
+screen = tk.Entry(screenFrame, font=('Courier New', 15), bg='white', fg='black',
                   width=50, bd=5, relief='flat', justify='right')
-screen.grid(row=0, column=0, columnspan=2, pady=5)
+screen.grid(row=1, column=0, columnspan=2)
 
 real_expression = ""
 
@@ -37,14 +44,33 @@ def on_button_click(text):
 
     if text == 'AC':
         screen.delete(0, tk.END)
+        screenAnswers.delete(0, tk.END)
         real_expression = ""
     elif text == 'C':
         if real_expression == "Error":
             screen.delete(0, tk.END)
+            screenAnswers.delete(0, tk.END)
             real_expression = ""
             return
-        screen.delete(len(screen.get()) - 1, tk.END)
-        real_expression = real_expression[:-1]
+        
+        if not screen.get():
+            screenAnswers.delete(0, tk.END)
+            return
+
+        FUNCTION_NAMES = ["<=",">=","^2","√(","yroot","abs(","10^(","ln(",
+                          "log(","mod","sin(","cos(","tan(","sec(","csc(",
+                          "cot(","asin(","acos(","atan(","asec(","acsc(","acot("]
+
+        screen_text = screen.get()
+
+        for func in FUNCTION_NAMES:
+            if screen_text.endswith(func):
+                screen.delete(len(screen_text) - len(func), tk.END)
+                real_expression = real_expression[:-len(func)]
+                break
+        else:
+            screen.delete(len(screen.get()) - 1, tk.END)
+            real_expression = real_expression[:-1]
     elif text in ['◄', '►']:
         current_pos = screen.index(tk.INSERT)
         new_pos = max(0, current_pos - 1) if text == '◄' else min(len(screen.get()), current_pos + 1)
@@ -55,7 +81,7 @@ def on_button_click(text):
 
         open_parens = real_expression.count('(')
         close_parens = real_expression.count(')')
-        real_expression += ')' * (open_parens - close_parens)  # Fix unclosed parentheses
+        real_expression += ')' * (open_parens - close_parens)
         
         try:
             result = eval(real_expression, {"__builtins__": None}, SAFE_MATH_FUNCS)
@@ -64,11 +90,22 @@ def on_button_click(text):
                 result = int(result)
 
             screen.delete(0, tk.END)
-            screen.insert(tk.END, str(result))
+            screenAnswers.insert(tk.END, str(result))
             real_expression = str(result)
+        except (SyntaxError, NameError):
+            screen.delete(0, tk.END)
+            screenAnswers.delete(0, tk.END)
+            screenAnswers.insert(tk.END, "Syntax Error")
+            real_expression = "Error"
+        except ZeroDivisionError:
+            screen.delete(0, tk.END)
+            screenAnswers.delete(0, tk.END)
+            screenAnswers.insert(tk.END, "Undefined")
+            real_expression = "Error"
         except Exception:
             screen.delete(0, tk.END)
-            screen.insert(tk.END, "Error")
+            screenAnswers.delete(0, tk.END)
+            screenAnswers.insert(tk.END, "Error")
             real_expression = "Error"
     elif text == 'a^2':
         screen.insert(tk.END, '^2')
@@ -86,13 +123,13 @@ def on_button_click(text):
         screen.insert(tk.END, '√(')
         real_expression += 'sqrt('
     elif text == 'ⁿ√x':
-        screen.insert(tk.END, 'ⁿ√(')
+        screen.insert(tk.END, 'yroot')
         real_expression += '**(1/'
     elif text == 'n!':
         screen.insert(tk.END, '!')
 
         i = len(real_expression) - 1
-        while i >= 0 and (real_expression[i].isdigit() or real_expression[i] == ')'):
+        while i >= 0 and (real_expression[i].isdigit() or real_expression[i] in [')', '+', '-', '*', '/']):
             i -= 1
 
         if i < len(real_expression) - 1:
@@ -119,7 +156,7 @@ def on_button_click(text):
         screen.insert(tk.END, 'log(')
         real_expression += 'log10('
     elif text == 'mod':
-        screen.insert(tk.END, ' mod ')
+        screen.insert(tk.END, 'mod')
         real_expression += ' % '
     elif text == 'sin':
         screen.insert(tk.END, 'sin(')
@@ -210,7 +247,7 @@ def update_left_buttons(category):
             create_button(buttonFrameLeft, char, r, c)
 
 buttonFrameTopLeft = tk.Frame(appLayout)
-buttonFrameTopLeft.grid(row=1, column=0, pady=5)
+buttonFrameTopLeft.grid(row=2, column=0, pady=5)
 
 buttonFrameTopLeftLeft = tk.Frame(buttonFrameTopLeft, bg='white')
 buttonFrameTopLeftLeft.grid(row=0, column=0, padx=5)
@@ -234,12 +271,12 @@ buttonDerive = tk.Button(buttonFrameTopLeftRight, text='DERIVATION', command=lam
 buttonDerive.grid(row=0, column=0)
 
 buttonFrameLeft = tk.Frame(appLayout, bg='white')
-buttonFrameLeft.grid(row=2, column=0, padx=5, pady=2)
+buttonFrameLeft.grid(row=3, column=0, padx=5, pady=2)
 
 update_left_buttons('Functions')
 
 buttonFrameTopRight = tk.Frame(appLayout, bg='white')
-buttonFrameTopRight.grid(row=1, column=1, pady=5)
+buttonFrameTopRight.grid(row=2, column=1, pady=5)
 
 top_buttons = ['AC', '◄', '►', 'C']
 
@@ -247,7 +284,7 @@ for c, char in enumerate(top_buttons):
     create_button(buttonFrameTopRight, char, 0, c)
 
 buttonFrameRight = tk.Frame(appLayout, bg='white')
-buttonFrameRight.grid(row=2, column=1, padx=5, pady=2)
+buttonFrameRight.grid(row=3, column=1, padx=5, pady=2)
 
 right_buttons = [
     ['7', '8', '9', '/'],
