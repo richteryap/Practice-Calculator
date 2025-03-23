@@ -246,6 +246,38 @@ def update_left_buttons(category):
         for c, char in enumerate(row):
             create_button(buttonFrameLeft, char, r, c)
 
+def differentiate_expression():
+    global real_expression
+
+    if not real_expression:
+        return
+
+    try:
+        processed_expression = real_expression.replace('^', '**')
+
+        processed_expression = ''.join(
+            f'{c}*' if c.isdigit() and i + 1 < len(processed_expression) and processed_expression[i + 1].isalpha() else c
+            for i, c in enumerate(processed_expression)
+        )
+
+        x = sp.symbols('x')
+
+        sympy_expr = sp.sympify(processed_expression, locals={'x': x})
+
+        derivative = sp.diff(sympy_expr, x)
+
+        screen.delete(0, tk.END)
+        screenAnswers.delete(0, tk.END)
+        screenAnswers.insert(tk.END, str(derivative))
+
+        real_expression = str(derivative)
+
+    except Exception as e:
+        screen.delete(0, tk.END)
+        screenAnswers.delete(0, tk.END)
+        screenAnswers.insert(tk.END, "Error")
+        real_expression = "Error"
+
 buttonFrameTopLeft = tk.Frame(appLayout)
 buttonFrameTopLeft.grid(row=2, column=0, pady=5)
 
@@ -265,7 +297,7 @@ buttonFunctions.menu.add_command(label='TRIGONOMETRY', font=('Courier New', 13),
 buttonFrameTopLeftRight = tk.Frame(buttonFrameTopLeft, bg='white')
 buttonFrameTopLeftRight.grid(row=0, column=1, padx=5)
 
-buttonDerive = tk.Button(buttonFrameTopLeftRight, text='DERIVATION', command=lambda: print('Derive'),
+buttonDerive = tk.Button(buttonFrameTopLeftRight, text='DERIVATION', command=differentiate_expression,
                         font=('Courier New', 15), cursor='hand2', bd=1, relief='flat',
                         overrelief='flat', justify='center', bg='gainsboro', fg='black', width=10)
 buttonDerive.grid(row=0, column=0)
