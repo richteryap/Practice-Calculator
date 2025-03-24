@@ -20,6 +20,8 @@ screen = tk.Entry(screenFrame, font=('Courier New', 15), bg='white', fg='black',
                   width=50, bd=5, relief='flat', justify='right')
 screen.grid(row=1, column=0, columnspan=2)
 
+root.after(100, lambda: screen.focus_set())
+
 real_expression = ""
 
 SAFE_MATH_FUNCS = {
