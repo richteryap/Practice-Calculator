@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-from scipy.optimize import approx_fprime
 from scipy.integrate import quad
 import sympy
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit,
@@ -31,6 +30,7 @@ class FunctionVisualizer(QWidget):
         self.operation_combo = QComboBox()
         self.operation_combo.addItem("Original Function")
         self.operation_combo.addItem("First Derivative")
+        self.operation_combo.addItem("Second Derivative")
         self.operation_combo.addItem("Integral")
 
         # Matplotlib Canvas
@@ -39,6 +39,10 @@ class FunctionVisualizer(QWidget):
         self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.plot_axes = self.figure.add_subplot(111)
+
+        # Output Label
+        self.output_label = QLabel("")
+        self.output_label.setAlignment(Qt.AlignCenter)
 
         # Layout
         input_layout = QGridLayout()
@@ -59,6 +63,7 @@ class FunctionVisualizer(QWidget):
         main_layout = QVBoxLayout()
         main_layout.addLayout(input_layout)
         main_layout.addLayout(plot_layout)
+        main_layout.addWidget(self.output_label)
 
         self.setLayout(main_layout)
 
@@ -76,60 +81,86 @@ class FunctionVisualizer(QWidget):
             self.plot_axes.clear()
             self.plot_axes.text(0.5, 0.5, "Invalid function input.", ha='center', va='center', fontsize=12, color='red')
             self.canvas.draw()
+            self.output_label.setText("Invalid function input.")
             return None
 
     def plot_function(self):
-        func = self.get_function_from_input()
-        if func is None:
+        function_str = self.function_entry.text().strip()
+        try:
+            x_sym = sympy.Symbol('x')
+            from sympy.parsing.sympy_parser import parse_expr
+            original_function_sym = parse_expr(function_str)
+            func = sympy.lambdify(x_sym, original_function_sym)
+        except (SyntaxError, TypeError):
+            self.plot_axes.clear()
+            self.plot_axes.text(0.5, 0.5, "Invalid function input.", ha='center', va='center', fontsize=12, color='red')
+            self.canvas.draw()
+            self.output_label.setText("Invalid function input.")
             return
 
         try:
             x_min = float(self.x_min_entry.text())
             x_max = float(self.x_max_entry.text())
-            x = np.linspace(x_min, x_max, 400) # More points for smoother curves
+            x_num = np.linspace(x_min, x_max, 400).round(3) # Round x-values as well
         except ValueError:
             self.plot_axes.clear()
             self.plot_axes.text(0.5, 0.5, "Invalid x-range input.", ha='center', va='center', fontsize=12, color='red')
             self.canvas.draw()
+            self.output_label.setText("Invalid x-range input.")
             return
 
         self.plot_axes.clear()
         operation = self.operation_combo.currentText()
 
         if operation == "Original Function":
-            y = [func(val) for val in x]
-            self.plot_axes.plot(x, y, label="f(x)")
+            y = [round(func(val), 3) for val in x_num]
+            self.plot_axes.plot(x_num, np.array(y).round(3), label="f(x)") # Round again for good measure
             self.plot_axes.set_ylabel("f(x)")
             self.plot_axes.set_title("Original Function")
+            self.output_label.setText("")
         elif operation == "First Derivative":
             try:
-                def f(t):
-                    return func(t)
-                h = 1e-6  # Small step size for numerical differentiation
-                dy = [(f(val + h) - f(val)) / h for val in x]
-                self.plot_axes.plot(x, dy, label="f'(x)")
+                first_derivative_sym = sympy.diff(original_function_sym, x_sym)
+                simplified_derivative = sympy.simplify(first_derivative_sym)
+                first_derivative_func = sympy.lambdify(x_sym, simplified_derivative)
+                dy = [round(first_derivative_func(val), 3) for val in x_num]
+                self.plot_axes.plot(x_num, np.array(dy).round(3), label="f'(x)") # Round again
                 self.plot_axes.set_ylabel("f'(x)")
                 self.plot_axes.set_title("First Derivative")
+                self.output_label.setText(f"First Derivative: {simplified_derivative}")
             except Exception as e:
                 self.plot_axes.text(0.5, 0.5, f"Error computing derivative: {e}", ha='center', va='center', fontsize=10, color='red')
-        elif operation == "Integral":
-            integral_values = []
-            cumulative_integral = 0
+                self.output_label.setText(f"Error computing derivative: {e}")
+        elif operation == "Second Derivative":
             try:
-                for val in x:
+                first_derivative_sym = sympy.diff(original_function_sym, x_sym)
+                second_derivative_sym = sympy.diff(first_derivative_sym, x_sym)
+                simplified_second_derivative = sympy.simplify(second_derivative_sym)
+                second_derivative_func = sympy.lambdify(x_sym, simplified_second_derivative)
+                dy2 = [round(second_derivative_func(val), 3) for val in x_num]
+                self.plot_axes.plot(x_num, np.array(dy2).round(3), label="f''(x)") # Round again
+                self.plot_axes.set_ylabel("f''(x)")
+                self.plot_axes.set_title("Second Derivative")
+                self.output_label.setText(f"Second Derivative: {simplified_second_derivative}")
+            except Exception as e:
+                self.plot_axes.text(0.5, 0.5, f"Error computing second derivative: {e}", ha='center', va='center', fontsize=10, color='red')
+                self.output_label.setText(f"Error computing second derivative: {e}")
+        elif operation == "Integral":
+            try:
+                integral_values_full = []
+                for val in x_num:
                     result, _ = quad(func, x_min, val)
-                    integral_values.append(result)
-                self.plot_axes.plot(x, integral_values, label="∫f(t)dt")
+                    integral_values_full.append(result)
+                integral_values = [round(val, 3) for val in integral_values_full]
+                self.plot_axes.plot(x_num, np.array(integral_values).round(3), label="∫f(t)dt") # Round again
                 self.plot_axes.set_ylabel("∫f(t)dt")
                 self.plot_axes.set_title("Integral")
+                integral_sym = sympy.integrate(original_function_sym, x_sym)
+                simplified_integral = sympy.simplify(integral_sym)
+                self.output_label.setText(f"Integral: {simplified_integral} + C (plotted numerically)")
             except Exception as e:
                 self.plot_axes.text(0.5, 0.5, f"Error computing integral: {e}", ha='center', va='center', fontsize=10, color='red')
-
-        self.plot_axes.axhline(0, color='black', linewidth=0.5)
-        self.plot_axes.axvline(0, color='black', linewidth=0.5)
-        self.plot_axes.grid(True)
-        self.plot_axes.legend()
-        self.canvas.draw()
+                self.output_label.setText(f"Error computing integral: {e}")
 
         self.plot_axes.axhline(0, color='black', linewidth=0.5)
         self.plot_axes.axvline(0, color='black', linewidth=0.5)
