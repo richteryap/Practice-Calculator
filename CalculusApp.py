@@ -70,20 +70,6 @@ class FunctionVisualizer(QWidget):
         # Connect button to calculation and plotting function
         self.calculate_button.clicked.connect(self.plot_function)
 
-    def get_function_from_input(self):
-        function_str = self.function_entry.text().strip()
-        try:
-            x = sympy.Symbol('x')
-            from sympy.parsing.sympy_parser import parse_expr
-            function = parse_expr(function_str)
-            return sympy.lambdify(x, function)
-        except (SyntaxError, TypeError):
-            self.plot_axes.clear()
-            self.plot_axes.text(0.5, 0.5, "Invalid function input.", ha='center', va='center', fontsize=12, color='red')
-            self.canvas.draw()
-            self.output_label.setText("Invalid function input.")
-            return None
-
     def plot_function(self):
         function_str = self.function_entry.text().strip()
         try:
@@ -147,6 +133,11 @@ class FunctionVisualizer(QWidget):
                 self.output_label.setText(f"Error computing second derivative: {e}")
         elif operation == "Integral":
             try:
+                # Check for domain restrictions
+                if any(term in function_str.lower() for term in ["log(x)", "sqrt(x)"]):
+                    x_min = max(0.0, x_min)
+                    if x_min == 0.0:
+                        x_min = 0.001  # avoid integrating at 0 for log(x) or sqrt(x)
                 integral_values_full = []
                 for val in x_num:
                     result, _ = quad(func, x_min, val)
